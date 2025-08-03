@@ -58,32 +58,32 @@ st.plotly_chart(fig6)
 # Section 7: Compare States on Key Normalized Indicators
 st.header("📍 Compare States on Key Normalized Indicators")
 
-compare_states = st.multiselect(
-    "Select States to Compare",
-    options=df["state_name"].unique(),
-    default=["ANDHRA PRADESH", "BIHAR"]
-)
-
-key_indicators = [
-    "broadband_rural", "broadband_urban", "urban_share",
-    "pmjdy_accounts_per_1000_pop", "rupay_cards_per_account", 
-    "avg_balance_per_account", "literacy_rate", 
-    "enrollment_per_1000_pop", "total_startups", 
-    "msmes_per_1000_pop"
-]
-
-if compare_states:
-    compare_df = df[df["state_name"].isin(compare_states)][["state_name"] + key_indicators].set_index("state_name")
-    compare_df = compare_df.T  # Transpose for radar chart format
-
-    # Radar chart using plotly
-    fig_radar = px.line_polar(
-        compare_df.reset_index().melt(id_vars="index", var_name="State", value_name="Value"),
-        r="Value", theta="index", color="State",
-        line_close=True, title="State-wise Normalized Indicator Comparison"
-    )
-    fig_radar.update_traces(fill='toself')
-    st.plotly_chart(fig_radar)
-else:
-    st.info("Please select at least one state to view comparison.")
+  compare_states = st.multiselect(
+      "Select States to Compare",
+      options=df["state_name"].unique(),
+      default=["ANDHRA PRADESH", "BIHAR"]
+  )
+  
+  key_indicators = [
+      "broadband_rural", "broadband_urban", "urban_share",
+      "pmjdy_accounts_per_1000_pop", "rupay_cards_per_account", 
+      "avg_balance_per_account", "literacy_rate", 
+      "enrollment_per_1000_pop", "total_startups", 
+      "msmes_per_1000_pop"
+  ]
+  
+  if compare_states:
+      compare_df = df[df["state_name"].isin(compare_states)][["state_name"] + key_indicators].set_index("state_name")
+      compare_df = compare_df.T  # Transpose for radar chart format
+  
+      # Radar chart using plotly
+      fig_radar = px.line_polar(
+          compare_df.reset_index().melt(id_vars="index", var_name="State", value_name="Value"),
+          r="Value", theta="index", color="State",
+          line_close=True, title="State-wise Normalized Indicator Comparison"
+      )
+      fig_radar.update_traces(fill='toself')
+      st.plotly_chart(fig_radar)
+  else:
+      st.info("Please select at least one state to view comparison.")
 
