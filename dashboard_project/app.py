@@ -1,77 +1,89 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 import seaborn as sns
 import matplotlib.pyplot as plt
-
-# Set page config
-st.set_page_config(page_title="Digital Commerce Readiness Dashboard", layout="wide")
+import plotly.express as px
 
 # Load data
 df = pd.read_csv("data/digital_readiness_master.csv")
 
-st.title("\U0001F4C8 Digital Commerce Readiness Dashboard")
-st.markdown("Analyze normalized metrics across states related to digital access, financial inclusion, education, and entrepreneurship.")
+# Drop unwanted columns
+df = df.drop(columns=["diff", "outlier"], errors='ignore')
 
-st.sidebar.header("Select chart to view")
-option = st.sidebar.selectbox("Chart Options", (
-    "Broadband Penetration (Urban vs Rural)",
-    "Financial Inclusion Scatter",
-    "Literacy vs MSMEs",
-    "Enrollment vs Startups",
-    "Startups vs MSMEs",
-    "Urban Share vs Digital Indicators",
-    "Bar Chart of Key Metrics by State"
-))
+# Title
+st.title("📊 Digital Commerce Readiness Dashboard")
 
-# Chart 1: Urban vs Rural Broadband Access
-if option == "Broadband Penetration (Urban vs Rural)":
-    fig = px.bar(df, x='state_name', y=['broadband_rural', 'broadband_urban'], 
-                 barmode='group', title="Urban vs Rural Broadband Access by State")
-    st.plotly_chart(fig, use_container_width=True)
+# Sidebar
+st.sidebar.header("Filters")
+selected_cluster = st.sidebar.multiselect("Select Clusters", sorted(df["cluster"].unique()), default=sorted(df["cluster"].unique()))
+df = df[df["cluster"].isin(selected_cluster)]
 
-# Chart 2: Financial Inclusion Scatter Plot
-elif option == "Financial Inclusion Scatter":
-    fig = px.scatter(df, x='pmjdy_accounts_per_1000_pop', y='rupay_cards_per_account',
-                     size='avg_balance_per_account', color='state_name',
-                     title="PMJDY vs RuPay Usage vs Average Account Balance",
-                     labels={"pmjdy_accounts_per_1000_pop": "PMJDY Accounts per 1000",
-                             "rupay_cards_per_account": "RuPay Cards per Account"})
-    st.plotly_chart(fig, use_container_width=True)
+# Section 1: Top 10 states by DCRI
+st.header("🔝 Top 10 States by Digital Commerce Readiness Index (DCRI)")
+top_states = df.sort_values("DCRI", ascending=False).head(10)
+fig1 = px.bar(top_states, x="state_name", y="DCRI", color="DCRI", title="Top 10 DCRI States")
+st.plotly_chart(fig1)
 
-# Chart 3: Literacy vs MSMEs
-elif option == "Literacy vs MSMEs":
-    fig = px.scatter(df, x='literacy_rate', y='msmes_per_1000_pop', color='state_name',
-                     title="Literacy Rate vs MSMEs per 1000 Population")
-    st.plotly_chart(fig, use_container_width=True)
+# Section 2: Literacy vs DCRI
+st.header("📚 Literacy Rate vs DCRI")
+fig2 = px.scatter(df, x="literacy_rate", y="DCRI", color="cluster", hover_name="state_name",
+                  size="population", title="Literacy vs DCRI by Cluster")
+st.plotly_chart(fig2)
 
-# Chart 4: Enrollment vs Startups
-elif option == "Enrollment vs Startups":
-    fig = px.scatter(df, x='enrollment_per_1000_HH', y='total_startups', color='state_name',
-                     size='population', title="Enrollment vs Total Startups")
-    st.plotly_chart(fig, use_container_width=True)
+# Section 3: MSME Density vs DCRI (Bubble plot)
+st.header("🏢 MSME Density vs DCRI")
+fig3 = px.scatter(df, x="DCRI", y="msmes_per_1000_pop", size="population", color="cluster",
+                  hover_name="state_name", title="MSME per 1000 vs DCRI (Bubble Size = Population)")
+st.plotly_chart(fig3)
 
-# Chart 5: Startups vs MSMEs
-elif option == "Startups vs MSMEs":
-    fig = px.scatter(df, x='msmes_per_1000_pop', y='total_startups', color='urban_share',
-                     title="MSMEs vs Startups with Urban Share as Color")
-    st.plotly_chart(fig, use_container_width=True)
+# Section 4: DCRI by Cluster (Boxplot)
+st.header("📦 DCRI Distribution by Cluster")
+fig4, ax4 = plt.subplots()
+sns.boxplot(data=df, x="cluster", y="DCRI", palette="Set2", ax=ax4)
+st.pyplot(fig4)
 
-# Chart 6: Urban Share vs Digital Metrics
-elif option == "Urban Share vs Digital Indicators":
-    fig = px.scatter(df, x='urban_share', y='broadband_urban', color='state_name',
-                     title="Urban Share vs Urban Broadband Access")
-    st.plotly_chart(fig, use_container_width=True)
+# Section 5: Correlation Heatmap
+st.header("🔗 Feature Correlation Heatmap")
+numeric_cols = df.select_dtypes(include='number').drop(columns=["cluster"], errors='ignore')
+fig5, ax5 = plt.subplots(figsize=(10, 8))
+sns.heatmap(numeric_cols.corr(), annot=True, cmap="coolwarm", ax=ax5)
+st.pyplot(fig5)
 
-    fig2 = px.scatter(df, x='urban_share', y='total_startups', color='state_name',
-                     title="Urban Share vs Startups")
-    st.plotly_chart(fig2, use_container_width=True)
+# Section 6: Choose your own comparison
+st.header("🔍 Custom Feature vs DCRI Comparison")
+feature_x = st.selectbox("Select X-axis feature", options=numeric_cols.columns)
+fig6 = px.scatter(df, x=feature_x, y="DCRI", color="cluster", hover_name="state_name", trendline="ols")
+st.plotly_chart(fig6)
 
-# Chart 7: Bar Chart for selected metrics
-elif option == "Bar Chart of Key Metrics by State":
-    st.markdown("### Compare states on key normalized indicators")
-    metrics = ['literacy_rate', 'enrollment_per_1000_HH', 'total_startups', 'msmes_per_1000_pop']
-    selected_metric = st.selectbox("Select metric to visualize", metrics)
-    fig = px.bar(df.sort_values(by=selected_metric, ascending=False),
-                 x='state_name', y=selected_metric, title=f"States ranked by {selected_metric}")
-    st.plotly_chart(fig, use_container_width=True)
+# Section 7: Compare States on Key Normalized Indicators
+st.header("📍 Compare States on Key Normalized Indicators")
+
+compare_states = st.multiselect(
+    "Select States to Compare",
+    options=df["state_name"].unique(),
+    default=["ANDHRA PRADESH", "BIHAR"]
+)
+
+key_indicators = [
+    "broadband_rural", "broadband_urban", "urban_share",
+    "pmjdy_accounts_per_1000_pop", "rupay_cards_per_account", 
+    "avg_balance_per_account", "literacy_rate", 
+    "enrollment_per_1000_pop", "total_startups", 
+    "msmes_per_1000_pop"
+]
+
+if compare_states:
+    compare_df = df[df["state_name"].isin(compare_states)][["state_name"] + key_indicators].set_index("state_name")
+    compare_df = compare_df.T  # Transpose for radar chart format
+
+    # Radar chart using plotly
+    fig_radar = px.line_polar(
+        compare_df.reset_index().melt(id_vars="index", var_name="State", value_name="Value"),
+        r="Value", theta="index", color="State",
+        line_close=True, title="State-wise Normalized Indicator Comparison"
+    )
+    fig_radar.update_traces(fill='toself')
+    st.plotly_chart(fig_radar)
+else:
+    st.info("Please select at least one state to view comparison.")
+
