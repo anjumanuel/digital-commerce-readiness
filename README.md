@@ -4,7 +4,7 @@ This project visualizes the multidimensional readiness of Indian states to parti
 
 **Live Dashboard**
 
-Access the dashboard here: 
+Access the dashboard here: https://digital-commerce-readiness-fcy6xckddr8yynmqf64wkd.streamlit.app/
 
 
 **Data Sources**
